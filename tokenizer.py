@@ -4,7 +4,7 @@ from tokenizers import Tokenizer, models
 import os
 import re
 
-#gets keys of a dictionary
+#gets keys of a dictionary string
 def extract_keys(string):
     pattern = r"'(.*?)'"
     return re.findall(pattern, string)
@@ -34,7 +34,7 @@ def tokenize_fnc(sample, tokenizer, num_token="[NUM]"):
     #returns a dictionary (False options to not get unnecessary keys:value pairs)
     out = tokenizer(nonum_text, return_attention_mask=False, return_token_type_ids=False)
 
-    #h_text in the paper (array of token ids of the sample) 
+    #"token" in the paper Figure 1 (array of token ids of the sample) 
     ids = out['input_ids']
     #h_num in the paper (similar to ids but has the value of the number instead of the num_tok_id. Other tokens are replaced with ones)
     num_embed = [1.]*len(ids)
