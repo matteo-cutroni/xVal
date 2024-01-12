@@ -33,10 +33,10 @@ mask_token_id = tokenizer.mask_token_id
 num_token_id = tokenizer.convert_tokens_to_ids('[NUM]')
 
 def collator(batch):
-    x = [torch.Tensor(sample["input_ids"]) for sample in batch]
+    x = [torch.tensor(sample["input_ids"]) for sample in batch]
     x = pad_sequence(x, batch_first=True, padding_value=pad_token_id)
 
-    x_num = [torch.Tensor(sample["numbers"]) for sample in batch]
+    x_num = [torch.tensor(sample["numbers"]) for sample in batch]
     x_num = pad_sequence(x_num, batch_first=True, padding_value=1.)
 
     y = x.clone()
@@ -45,7 +45,6 @@ def collator(batch):
     mask = torch.rand(x.shape) < mask_prob
     x[mask] = mask_token_id
     x_num[mask] = 1.
-
     
     return {'x': x, 'x_num': x_num, 'y':y, 'y_num':y_num}
 
@@ -65,7 +64,7 @@ opt = optim.Adam(m.parameters(), lr=learning_rate)
 loss_mlm = nn.CrossEntropyLoss()
 loss_num = nn.MSELoss()
 
-log_interval = 500
+log_interval = 32
 tot_loss = []
 mlm_loss = []
 num_loss = []
@@ -75,12 +74,8 @@ for e in tqdm(range(epochs)):
 
         x, x_num = batch['x'].to(device), batch['x_num'].to(device)
 
-        x.requires_grad = True
-        x_num.requires_grad = True
 
         logit_pred, num_pred = m(x, x_num)
-        logit_pred.requires_grad = True
-        num_pred.requires_grad = True
 
 
         l_mlm = loss_mlm(logit_pred.view(-1, logit_pred.size(-1)).to(device),
@@ -89,10 +84,8 @@ for e in tqdm(range(epochs)):
         num_mask = batch['y']==num_token_id
         l_num = loss_num( num_pred[num_mask].to(device),
                     batch["y_num"][num_mask].view(-1,1).to(device))
-        l_mlm.requires_grad = True
-        l_num.requires_grad = True
+
         loss = l_mlm+l_num
-        print(logit_pred.grad_fn)
         opt.zero_grad()
 
         loss.backward()
@@ -103,6 +96,6 @@ for e in tqdm(range(epochs)):
         num_loss.append(l_num.item())
 
         
-                #ogni tanto stampa loss di questo batch
+        #ogni tanto stampa loss di questo batch
         if batch_idx % log_interval == 0:
             print(f'Train Epoch: {e} [{batch_idx * len(x)}/{len(train_loader.dataset)} ({100. * batch_idx / len(train_loader):.0f}%)]\tLoss: {loss.data.item():.4f}')
