@@ -1,23 +1,25 @@
 import torch
 from torch import nn
 
-#same as paper code
-d_model=768,
-nhead=6,
-num_layers=6,
-dim_feedforward=3072,
-dropout=0.1,
-activation=nn.GELU(),
-layer_norm_eps=1e-05,
-batch_first=True,
-norm_first=True,
-context_length=1024,
+
+
 
 class Numformer(nn.Module):
-    def __init__(self, vocab_size):
+    def __init__(
+            self,
+            vocab_size, #same hyperparameters as paper code
+            d_model=160,
+            nhead=5,
+            num_layers=6,
+            dim_feedforward=640,
+            dropout=0.1,
+            activation=nn.GELU(),
+            layer_norm_eps=1e-05,
+            batch_first=True,
+            norm_first=True,
+            context_length=224):
         super().__init__()
-        #code uses Encoder but in the paper the model is said to have the main features as GPT-2 so I used a Decoder
-        decoder_layer = nn.TransformerDecoderLayer(
+        encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
             dim_feedforward=dim_feedforward,
@@ -27,9 +29,10 @@ class Numformer(nn.Module):
             batch_first=batch_first,
             norm_first=norm_first)
         
-        self.decoder = nn.TransformerDecoder(
-            decoder_layer=decoder_layer,
-            num_layers=num_layers)
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer=encoder_layer,
+            num_layers=num_layers,
+            enable_nested_tensor=False)
         
         #text needs to be embedded and given the positional information
         self.token_embed_table = nn.Embedding(vocab_size, d_model)
@@ -48,18 +51,18 @@ class Numformer(nn.Module):
         )
 
 
-    def forward(self, x_text, x_num):
+    def forward(self, x, x_num):
         batch_dim, time_dim = x.shape
 
-        tok_emb = self.token_embed_table(x_text)
+        tok_emb = self.token_embed_table(x)
         #pos_emb takes as input a tensor with values from 0 to time_dim-1 (time_dim == context_length)
-        pos_emb = self.position_embed_table(torch.arange(time_dim))
-
+        pos_emb = self.position_embed_table(torch.arange(time_dim).to(tok_emb.device))
+        
         x = tok_emb + pos_emb
         #h_emb = h_text*h_num
-        x = x*x_num
+        x = x*x_num.unsqueeze(-1)
 
-        x = self.decoder(x)
+        x = self.encoder(x)
         logits = self.lm_head(x)
         num = self.num_head(x)
         return logits, num
