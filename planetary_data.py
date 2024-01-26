@@ -37,7 +37,9 @@ def generate_sim():
     num_planets = np.random.randint(2, 5)
     af = np.random.uniform(1.5, 3)
 
+    #list of planets' descriptions
     planets = [create_planet(i,num_planets,af) for i in range(num_planets)]
+
     stepsize = np.random.choice([0.2, 0.3, 0.5, 0.8])
 
     data = planets_data(planets, stepsize)
@@ -54,7 +56,7 @@ def generate_sim():
     return str(sample)
 
 
-datasets = [('train',1000000), ('val',125000), ('test',125000)]
+datasets = [('train',10000), ('val',1250), ('test',1250)]
 
 for name, length in datasets:
     with open(f'data/{name}.txt', 'w') as f:

@@ -79,6 +79,7 @@ special_tokens = ["[END]", "[MASK]", "[PAD]", "[NUM]"]
 vocab=[]
 for key in sample_keys:
     vocab+=[f"'{key}':"]
+
 tokenizer = Tokenizer(models.BPE())
 tokenizer.add_special_tokens(special_tokens)
 tokenizer.add_tokens(vocab)
